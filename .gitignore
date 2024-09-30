@@ -15,7 +15,7 @@ Untitled*
 optism_esm_tools.egg-info/*
 *.png
 .hypothesis
-.coverage
+.coverage*
 optim_esm_tools/optim_esm_tools.egg-info
 *.egg-info
 cmip/data*
