@@ -149,6 +149,53 @@ class BaseMaskedProducer:
         ax.set_ylabel(oet.plotting.plot.get_ylabel(self.ds))
 
 
+def weigthed_mean_irregular(
+    da: xr.DataArray,
+    weights: xr.DataArray,
+    mask: xr.DataArray,
+    _incr=5,
+):
+    assert mask.dims == ("lat", "lon"), mask.dims
+    assert da.dims == ("time", "lev", "lat", "lon"), da.dims
+    assert weights.dims == ("lev",), weights.dims
+    mask_array = mask.values.astype(bool)
+    res = []
+    for t in oet.utils.tqdm(np.arange(0, len(da["time"]) + _incr, _incr), disable=True):
+        da_values = da.isel(time=slice(t, t + _incr)).load()
+        values = da_values.values
+        values[:, :, ~mask_array] = np.nan
+        res += [_weighted_mean_time_irregular(values, weights.values)]
+    return np.concatenate(res)
+
+
+@numba.njit
+def _weighted_mean_time_irregular(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
+    time, _, _, _ = data.shape
+    res = np.zeros(time, dtype=np.float64)
+    for t in range(time):
+        res[t] = _weighted_mean_array_irregular(data[t], weights)
+    return res
+
+
+@numba.njit
+def _weighted_mean_array_irregular(data: np.ndarray, weights: np.ndarray) -> float:
+    d, lat, lon = data.shape
+    assert len(weights) == d
+    tot = 0.0
+    tot_w = 0.0
+
+    for z in range(d):
+        for i in range(lat):
+            for j in range(lon):
+                if np.isnan(data[z][i][j]):
+                    continue
+                tot += data[z][i][j] * weights[z]
+                tot_w += weights[z]
+    if tot_w == 0.0:
+        return np.nan
+    return tot / tot_w
+
+
 class NorthAtlanticMaskedProducer(BaseMaskedProducer):
     def __init__(self, ds: xr.Dataset, mask: None = None):
         super().__init__(ds=ds, mask=mask)
@@ -626,3 +673,27 @@ def median_lat_lon(m, ds):
     x = np.median(np.mod(lon.T[m] - 180, 360)) - 180
     y = np.median(lat.T[m])
     return y, x
+
+
+def mask_to_full_mask(mask, fill_value=None):
+    mask_full = _base_mask().copy()
+    mask_full.data = np.arange(np.product(mask_full.shape), dtype=np.int64).reshape(
+        mask_full.shape,
+    )
+    keep_id = mask_full.where(_base_mask(), drop=True)
+    bool_mask = mask.values.astype(np.bool_)
+    if np.issubdtype(mask.values.dtype, np.floating):
+        bool_mask &= ~np.isnan(mask.values)
+        fill_value = fill_value if fill_value is not None else np.nan
+    else:
+        fill_value = fill_value if fill_value is not None else 0
+    keep_id.data[~bool_mask] = np.nan
+
+    all_val = mask_full.values.flatten().astype(mask.dtype)
+    all_val[:] = fill_value
+    for x, v in zip(keep_id.values.flatten(), mask.values.flatten()):
+        if not np.isnan(x):
+            all_val[int(x)] = v
+
+    mask_full.data = all_val.reshape(mask_full.shape)
+    return mask_full

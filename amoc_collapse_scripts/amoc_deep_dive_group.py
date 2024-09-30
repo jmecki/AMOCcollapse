@@ -11,16 +11,9 @@ import numpy as np
 import optim_esm_tools as oet
 import xarray as xr
 
-from . import amoc_deep_dive
 from . import helper_scripts
 from .amoc_deep_dive import _base_mask
-from .amoc_deep_dive import get_lev_coord
-from .amoc_deep_dive import plot_and_modify_buffer
-from .amoc_deep_dive import plot_mlotst_difference
-from .amoc_deep_dive import PlotProducer
-from .amoc_deep_dive import set_time_int
-from .amoc_deep_dive import update_units
-from .amoc_deep_dive import yearly_average
+from .manual_msft import get_lev_coord
 
 log = oet.get_logger()
 
