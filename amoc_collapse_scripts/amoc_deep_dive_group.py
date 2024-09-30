@@ -13,6 +13,7 @@ import xarray as xr
 
 from . import helper_scripts
 from .amoc_deep_dive import _base_mask
+from .amoc_deep_dive import set_time_int
 from .manual_msft import get_lev_coord
 
 log = oet.get_logger()

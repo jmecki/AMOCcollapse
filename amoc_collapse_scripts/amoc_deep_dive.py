@@ -343,9 +343,6 @@ def plot_and_modify_buffer(
         **kw,
     )
     if contours:
-        # overlay_kw = dict()
-        # if kw.get('vmin',0) < -1 and kw.get('vmax',0) > 1:
-        #     overlay_kw = dict(levels=np.round(np.linspace(kw['vmin'], kw['vmax'], 10),0))
         overlay_contour(da_filler)
 
     plt.xlim(-70, 20)
