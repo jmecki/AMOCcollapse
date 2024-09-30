@@ -1,0 +1,55 @@
+[project]
+name = "amoc_collapse"
+version = "0.0.0"
+dependencies = [
+    "immutabledict",
+    "intake-esm",
+    "matplotlib",
+    "numba",
+    "numpy",
+    "pandas",
+    "tqdm",
+    "treelib",
+    "xarray",
+    "statsmodels",
+    "seawater",
+]
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Joran R. Angevaare" }]
+maintainers = [{ name = "Joran R. Angevaare" }]
+
+
+
+[tool.setuptools.package-data]
+optim_esm_tools = ['scripts/*', '*.ini*', 'py.typed']
+
+[tool.setuptools.packages.find]
+where = [".", "scripts"]
+
+[project.urls]
+homepage = 'https://github.com/jmecki/AMOCcollapse'
+documentation = 'https://github.com/jmecki/AMOCcollapse/README.md'
+repository = 'https://github.com/jmecki/AMOCcollapse'
+
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.black]
+target-version = ['py38']
+skip-string-normalization = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__ == .__main__.:",
+    "pragma: no cover",
+    "ignore_errors = True",
+]
+
+[tool.flake8]
+# Set maximum width of the line to 100
+max-line-length = 110
