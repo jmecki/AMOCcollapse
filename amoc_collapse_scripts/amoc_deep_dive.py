@@ -33,7 +33,8 @@ from matplotlib.colors import LogNorm
 from matplotlib.gridspec import GridSpec
 from tqdm.notebook import tqdm
 
-from . import helper_scripts 
+from . import helper_scripts
+
 
 def _mask_xr_ds(
     data_set: xr.Dataset,
@@ -228,25 +229,6 @@ class NorthAtlanticMaskedProducer(BaseMaskedProducer):
 
         return new_mask
 
-    def get_amoc_mask_north_old(self) -> xr.DataArray:
-        ds = self.ds
-        numbered_regions = regionmask.defined_regions.ar6.all.mask(ds.lon, ds.lat)
-        north_atlantic_id = 50  # regionmask.defined_regions.ar6.all.names[50]
-        mask = numbered_regions == north_atlantic_id
-        mask &= mask.lat >= 35
-        mask &= mask.lat <= 65
-        return mask
-
-    def get_amoc_mask_south_old(self) -> xr.DataArray:
-        ds = self.ds
-        numbered_regions = regionmask.defined_regions.ar6.all.mask(ds.lon, ds.lat)
-        south_atlantic_id = 52  # regionmask.defined_regions.ar6.all.names[52]
-        mask = numbered_regions == south_atlantic_id
-        mask &= mask.lat >= -50
-        mask &= mask.lat <= -40
-        mask &= (mask.lon < 20) | (mask.lon > 240)
-        return mask
-
     def plot_mean_time_series(self, *a, hemisphere="north", apply_amoc=False, **kw):
         if not apply_amoc:
             raise ValueError(
@@ -259,121 +241,10 @@ class PlotProducer(NorthAtlanticMaskedProducer):
     ...
 
 
-class MassProduce:
-    def __init__(
-        self,
-        production_mapping: ty.Dict[str, PlotProducer],
-        required_keys=ty.Tuple[str, ...],
-    ) -> None:
-        assert all(k in production_mapping for k in required_keys)
-        self.production_mapping = production_mapping
-
-    def plot_all(self) -> None:
-        self.production_mapping["hdfs"].plot_mean_time_series(
-            apply_amoc=True,
-        )
-        plt.show()
-
-        self.production_mapping["wfo"].plot_mean_time_series(
-            apply_amoc=True,
-        )
-        plt.show()
-
-
-def yearly_average(ds):
-    dds = ds.groupby("time.year").mean().rename(dict(year="time"))
-    if "cell_area" in dds:
-        del dds["cell_area"]
-        dds["cell_area"] = ds["cell_area"].copy()
-    return dds
-
-
-def weigthed_mean_irregular(
-    da: xr.DataArray,
-    weights: xr.DataArray,
-    mask: xr.DataArray,
-    _incr=5,
-):
-    assert mask.dims == ("lat", "lon"), mask.dims
-    assert da.dims == ("time", "lev", "lat", "lon"), da.dims
-    assert weights.dims == ("lev",), weights.dims
-    mask_array = mask.values.astype(bool)
-    res = []
-    for t in oet.utils.tqdm(np.arange(0, len(da["time"]) + _incr, _incr), disable=True):
-        da_values = da.isel(time=slice(t, t + _incr)).load()
-        values = da_values.values
-        values[:, :, ~mask_array] = np.nan
-        res += [_weighted_mean_time_irregular(values, weights.values)]
-    return np.concatenate(res)
-
-
-@numba.njit
-def _weighted_mean_time_irregular(data: np.ndarray, weights: np.ndarray) -> np.ndarray:
-    time, _, _, _ = data.shape
-    res = np.zeros(time, dtype=np.float64)
-    for t in range(time):
-        res[t] = _weighted_mean_array_irregular(data[t], weights)
-    return res
-
-
-@numba.njit
-def _weighted_mean_array_irregular(data: np.ndarray, weights: np.ndarray) -> float:
-    d, lat, lon = data.shape
-    assert len(weights) == d
-    tot = 0.0
-    tot_w = 0.0
-
-    for z in range(d):
-        for i in range(lat):
-            for j in range(lon):
-                if np.isnan(data[z][i][j]):
-                    continue
-                tot += data[z][i][j] * weights[z]
-                tot_w += weights[z]
-    if tot_w == 0.0:
-        return np.nan
-    return tot / tot_w
-
-
 def set_time_int(ds: xr.Dataset) -> xr.Dataset:
     if not isinstance(ds["time"].values[0], (int, np.int_)):
         ds["time"] = [t.year for t in ds["time"].values]
     return ds
-
-
-
-
-def update_units(ds: xr.Dataset) -> xr.Dataset:
-    ds = ds.copy()
-    if ds.attrs["variable_id"] in ["msftbarot", "sltovovrt"]:
-        var = ds.attrs["variable_id"]
-        ds[f"{var}"] = ds[var] / 1.0e9
-        ds[f"{var}"].attrs["units"] = "Sv"
-        if f"{var}_run_mean_10" in ds:
-            ds[f"{var}_run_mean_10"] = ds[f"{var}_run_mean_10"] / 1.0e9
-            ds[f"{var}_run_mean_10"].attrs["units"] = "Sv"
-    if ds.attrs["variable_id"] == "tas":
-        ds["tas"] = ds["tas"] - 272.15
-        ds["tas"].attrs["units"] = "${}^\\circ$C"
-        ds["tas_run_mean_10"] = ds["tas_run_mean_10"] - 272.15
-        ds["tas_run_mean_10"].attrs["units"] = "${}^\\circ$C"
-    return ds
-
-
-def get_lev_coord(ds: xr.Dataset) -> str:
-    for k in "lev olevel".split():
-        if k in ds or k in ds.dims:
-            return k
-    raise ValueError
-
-
-def scale_flux(ds):
-    if ds[ds.variable_id].attrs.get("units") in ["kg m-2 s-1"]:
-        _var = ds.variable_id
-        oet.get_logger().warning(f"Update units for {_var}")
-        for field in [_var, f"{_var}_run_mean_10"]:
-            ds[field] = ds[field] * 1e5
-            ds[field].attrs.update(dict(units=r"$10^{-5}$ kg\, m$^{-2}$\, s$^{-1}$"))
 
 
 def get_vmin_vmax(da, minmax_percentile):
@@ -388,41 +259,6 @@ def get_vmin_vmax(da, minmax_percentile):
     vmin = -mm if np.any(ar < 0) else 0
     vmax = mm if np.any(ar > 0) else 0
     return dict(vmin=vmin, vmax=vmax)
-
-
-def plot_mlotst_difference(
-    ds_glob: xr.Dataset,
-    year_0: int = 1995,
-    year_1: int = 2095,
-    contours: bool = True,
-    smooth: bool = True,
-    mask: ty.Optional[xr.DataArray] = None,
-    force_blue_red: bool = True,
-    _crange_perc: ty.Union[float, int] = 1,
-    **kw,
-) -> None:
-    if mask is None:
-        raise ValueError
-    da_reg = ds_glob[ds_glob.variable_id + "_run_mean_10"].where(mask, drop=True)
-    da_t0 = da_reg.sel(time=year_0)
-    da_t1 = da_reg.sel(time=year_1)
-    da_filler = da_t1 - da_t0
-
-    if force_blue_red:
-        # mm = max(np.abs(float(da_filler.min())), np.abs(float(da_filler.max())))
-
-        for key, value in dict(
-            **get_vmin_vmax(da_filler, _crange_perc),
-            cmap="coolwarm",
-        ).items():
-            kw.setdefault(key, value)
-    plot_and_modify_buffer(da_filler, smooth, contours, **kw)
-    plt.title(f"{year_1} - {year_0} {ds_glob.variable_id}")
-
-
-def plot_da_2d(*a, **kw):
-    oet.get_logger().warning("plot_da_2d has been replaced by plot_and_modify_buffer")
-    return plot_and_modify_buffer(*a, **kw)
 
 
 def plot_and_modify_buffer(
@@ -474,19 +310,6 @@ def shifted_da(da):
     lon_v = da_filler["lon"].values
 
     lon_v[lon_v > 180] = lon_v[lon_v > 180] - 360
-    # da_filler["lon"] = np.concatenate([np.arange(21), np.arange(-70, 0)])
-    da_filler["lon"] = lon_v
-    da_filler = da_filler.sortby("lon")
-    return da_filler
-
-
-def shift_da_back(da):
-    da_filler = da.copy()
-
-    lon_v = da_filler["lon"].values
-
-    lon_v[lon_v < 0] = lon_v[lon_v < 0] + 360
-    # da_filler["lon"] = np.concatenate([np.arange(360 - 70, 360), np.arange(21)])
     da_filler["lon"] = lon_v
     da_filler = da_filler.sortby("lon")
     return da_filler
@@ -494,7 +317,6 @@ def shift_da_back(da):
 
 def overlay_contour(da_filler: xr.DataArray, add_label=False, **kw):
     da_filler = shifted_da(da_filler)
-    # CS = da_filler.plot.contour(levels=10, colors='k', transform=oet.plotting.plot.get_cartopy_transform('PlateCarree'))
     for k, v in dict(
         linewidths=0.5,
         colors="k",
@@ -503,14 +325,8 @@ def overlay_contour(da_filler: xr.DataArray, add_label=False, **kw):
     ).items():
         kw.setdefault(k, v)
     args = (da_filler.lon, da_filler.lat, da_filler.values)
-    # kw.setdefault('levels', 12)
-
-    # try:
     CS = plt.contour(*args, **kw)
-    # except ValueError as e:
-    #     oet.get_logger().info(f'Ran into {e} retrying with 15-levels')
-    #     kw['levels'] = 15
-    #     CS = plt.contour(*args, **kw)
+
     if add_label:
         plt.gca().clabel(CS, inline=True, fontsize=3)
 
@@ -524,161 +340,6 @@ def _base_mask(*a, lat_min=40, lat_max=80, lon_min=-75, lon_max=30, **kw):
         lon_min=lon_min,
         lon_max=lon_max,
     )
-
-
-def _base_mask_old(ds, hemisphere=None):
-    mask = ds["cell_area"].copy().astype(bool)
-    mask.data[:] = False
-    mask.data[10:50, -70:] = True
-    mask.data[10:50, :21] = True
-    if hemisphere is not None:
-        mask = PlotProducer.approximate_atlantic(mask)
-
-    return mask
-
-
-def split_simple(values, mask, no_found_label=-1, n_clusters=2, **kw):
-    """Thanks https://scikit-learn.org/stable/auto_examples/cluster/plot_segmentation_toy.html#sphx-glr-auto-examples-cluster-plot-segmentation-toy-py"""
-    aa = values.copy()
-    # if not np.sum(aa)>n_clusters:
-    #     return aa
-    aa[~mask] = 0
-    aa[np.isnan(aa)] = 0
-    sh = aa.shape
-    if sh[0] < sh[1]:
-        aa_square = np.zeros((sh[1], sh[1]), dtype=aa.dtype)
-        aa_square[: sh[0]] = aa
-    elif sh[1] > sh[0]:
-        aa_square = np.zeros((sh[1], sh[1]), dtype=aa.dtype)
-        aa_square[: sh[0]] = aa
-
-    from sklearn.cluster import spectral_clustering
-    from sklearn.feature_extraction import image
-
-    assert no_found_label != 0, no_found_label
-    img = aa_square
-    mask = img.astype(bool)
-
-    graph = image.img_to_graph(img, mask=mask)
-    kw.setdefault("eigen_solver", "arpack")
-    labels = spectral_clustering(graph, n_clusters=n_clusters, **kw)
-
-    label_im = np.full(mask.shape, no_found_label)
-    label_im[mask] = labels
-    # fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
-    # axs[0].matshow(img)
-    # axs[1].matshow(label_im)
-    # plt.title(n_clusters)
-    # plt.show()
-    return label_im[: sh[0], : sh[1]]
-
-
-# def _manual_resolve():
-#     masked_vals = da.copy().values
-#     masked_vals[sets!=id_key] = np.nan
-#     mean_func_of_lon = np.nanmean(masked_vals, axis=1)
-#     plt.imshow(masked_vals)
-#     plt.show()
-#     na_means = np.all(np.isnan(masked_vals), axis=1)
-#     print(dict(mean_func_of_lon=mean_func_of_lon, na_means=na_means))
-#     assert len(mean_func_of_lon) == len(masked_vals), (len(mean_func_of_lon) , len(masked_vals))
-#     # Do not break in the first or last 5% of the cells
-#     non_breakable = len(mean_func_of_lon[~na_means]) // 20
-#     idx_lon_break = np.argmin(mean_func_of_lon[~na_means][non_breakable:-non_breakable])
-#     true_idx_break_accounting_for_nan = np.argwhere(mean_func_of_lon==mean_func_of_lon[~na_means][idx_lon_break])[0,0]
-#     print(dict(
-#         idx_lon_break=idx_lon_break,
-#         val = mean_func_of_lon[~na_means][idx_lon_break],
-#         true_idx_break_accounting_for_nan=true_idx_break_accounting_for_nan,
-#         val2=mean_func_of_lon[true_idx_break_accounting_for_nan]
-#         ))
-#     ma_group.data[(sets == id_key)][idx_lon_break:] = np.unique(ma_group.values)[-1] + 1
-
-
-def _resolve_group_min_max(
-    label_mask,
-    mlotst_values,
-    min_cells,
-    max_cells,
-    no_group_value,
-):
-    """Keep iterating label-mask to ensure each mask has > min_cels and <
-    max_cells."""
-    something_split = True
-    something_discarded = True
-    while something_discarded or something_split:
-        something_split = False
-        something_discarded = False
-        for id_key, counts in zip(*np.unique(label_mask.values, return_counts=True)):
-            if id_key == no_group_value:
-                continue
-            if max_cells and counts > max_cells:
-                something_split = True
-                _da_buffer = mlotst_values.copy()
-                _da_buffer.data = label_mask.values == id_key
-                _da_buffer = _da_buffer.astype(bool)
-                n_cluster = int(max(np.round(counts / max_cells, 0), 2))
-                while True:
-                    new_groups = split_simple(
-                        shifted_da(mlotst_values).values,
-                        shifted_da(_da_buffer),
-                        n_clusters=n_cluster,
-                        no_found_label=no_group_value,
-                    )
-                    if all(
-                        (i == no_group_value or (new_groups == i).sum() < max_cells)
-                        for i in np.unique(new_groups)
-                    ):
-                        break
-
-                    n_cluster += 1
-                _da_buffer = _da_buffer.astype(np.int64)
-                _da_buffer.data = new_groups
-
-                new_groups = shift_da_back(_da_buffer).values
-                label_mask.data[label_mask.values == id_key] = no_group_value
-                for new_id in np.unique(new_groups):
-                    if new_id == no_group_value:
-                        continue
-                    label_mask.data[(new_groups == new_id)] = max(
-                        np.unique(label_mask.values)[-1] + 1,
-                        1,
-                    )
-            if counts < min_cells:
-                something_discarded = True
-                label_mask.data[label_mask.values == id_key] = no_group_value
-    return label_mask
-
-
-# def _resolve_group_min_max(label_mask, mlotst_values, min_cells, max_cells, no_group_value):
-#     """Keep iterating label-mask to ensure each mask has > min_cels and < max_cells"""
-#     something_split=True
-#     something_discarded=True
-#     while something_discarded or something_split:
-#         something_split=False
-#         something_discarded=False
-#         for id_key, counts in zip(*np.unique(label_mask.values, return_counts=True)):
-#             if id_key == no_group_value:
-#                 continue
-#             if max_cells and counts > max_cells:
-#                 something_split=True
-#                 _da_buffer = mlotst_values.copy()
-#                 _da_buffer.data = label_mask.values==id_key
-#                 _da_buffer = _da_buffer.astype(bool)
-#                 new_groups = split_simple(shifted_da(mlotst_values).values, shifted_da(_da_buffer), n_clusters=int(max(np.round(counts/max_cells, 0), 2)), no_found_label=no_group_value)
-#                 _da_buffer = _da_buffer.astype(np.int64)
-#                 _da_buffer.data = new_groups
-
-#                 new_groups=shift_da_back(_da_buffer).values
-#                 label_mask.data[label_mask.values==id_key] = no_group_value
-#                 for new_id in np.unique(new_groups):
-#                     if new_id == no_group_value:
-#                         continue
-#                     label_mask.data[(new_groups == new_id)] = max(np.unique(label_mask.values)[-1] + 1, 1)
-#             if counts < min_cells:
-#                 something_discarded=True
-#                 label_mask.data[label_mask.values == id_key] = no_group_value
-#     return label_mask
 
 
 @dataclass
@@ -771,11 +432,6 @@ def get_names_of_mask(mask: xr.DataArray, rename_dict=None, database=None):
         if np.sum((mask_arr == i) & (mask)):
             names.append(rename_dict.get(n, n))
     return ", ".join(sorted(set(names)))
-
-
-def plot_mlotst_cells(*a, **kw):
-    res = plot_mlotst_cells_full_ret(*a, **kw)
-    return res.region_dict
 
 
 @oet.utils.check_accepts(
@@ -897,9 +553,6 @@ def plot_mlotst_cells_full_ret(
             g_set = g.astype(bool)
             single_sets.append(g_set)
 
-    # single_sets = oet.analyze.clustering._split_to_continous(
-    #     [ma_group.values.astype(np.bool_)],
-    # )
     ma_group.data[ma_group == no_group_value] = 0
     plot_and_modify_buffer(
         ma_group,
@@ -973,27 +626,3 @@ def median_lat_lon(m, ds):
     x = np.median(np.mod(lon.T[m] - 180, 360)) - 180
     y = np.median(lat.T[m])
     return y, x
-
-
-def mask_to_full_mask(mask, fill_value=None):
-    mask_full = _base_mask().copy()
-    mask_full.data = np.arange(np.product(mask_full.shape), dtype=np.int64).reshape(
-        mask_full.shape,
-    )
-    keep_id = mask_full.where(_base_mask(), drop=True)
-    bool_mask = mask.values.astype(np.bool_)
-    if np.issubdtype(mask.values.dtype, np.floating):
-        bool_mask &= ~np.isnan(mask.values)
-        fill_value = fill_value if fill_value is not None else np.nan
-    else:
-        fill_value = fill_value if fill_value is not None else 0
-    keep_id.data[~bool_mask] = np.nan
-
-    all_val = mask_full.values.flatten().astype(mask.dtype)
-    all_val[:] = fill_value
-    for x, v in zip(keep_id.values.flatten(), mask.values.flatten()):
-        if not np.isnan(x):
-            all_val[int(x)] = v
-
-    mask_full.data = all_val.reshape(mask_full.shape)
-    return mask_full

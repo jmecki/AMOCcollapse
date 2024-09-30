@@ -46,6 +46,6 @@ from functools import partial, lru_cache
 import regionmask
 from scipy.signal.windows import gaussian
 
-import scipy.ndimage 
+import scipy.ndimage
 import seawater
 from dataclasses import dataclass
