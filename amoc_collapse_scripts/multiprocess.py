@@ -45,11 +45,6 @@ class ResultItem:
         return submit_jobs(self.failed_cmds(), **kw)
 
 
-def check_disk(max_disk=99.0):
-    perc = psutil.disk_usage("/data/volume_2/").percent
-    return perc > max_disk
-
-
 def write_job(job, temp_job_dir, nice=10):
     job_file = os.path.join(temp_job_dir, f"job_{secrets.token_hex(nbytes=16)}.sh")
     with open(job_file, "w") as ff:
@@ -90,9 +85,6 @@ def submit_jobs(
     _stat([])
 
     for i, job in enumerate(cmds):
-        if check_disk():
-            print("Disk full")
-            break
         if break_file is not None and os.path.exists(break_file):
             print("\nbreak\n")
             os.remove(break_file)

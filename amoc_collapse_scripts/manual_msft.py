@@ -16,6 +16,7 @@ import xarray as xr
 from matplotlib.legend_handler import HandlerTuple
 
 from . import helper_scripts
+from . import path_setup
 from .amoc_deep_dive import set_time_int
 
 
@@ -80,10 +81,7 @@ def find_parent(p, ds=None):
 
 
 def find_paths(target, clean=False, need_pi=True):
-    if (
-        target
-        == "/data/volume_2/2024_06_17_msft_manual_stage/data/CMIP6/ScenarioMIP/CCCma/CanESM5/ssp585/r1i1p1f1/Omon/msftmz/gn/v20240820/merged.nc"
-    ):
+    if target == path_setup.MANUALLY_PATCHED_SCENARIO_AND_HISTORICAL_FILE:
         # This set is done by hand and includes the historical evolution
         return dict(p_sc=target)
     h_h = find_parent(target)
@@ -221,7 +219,7 @@ def index_2d(a, idx_2d):
 
 def fix_j_mean_format(ds):
     pattern = (
-        f"/data/volume_2/synda/year_data_merged/CMIP6/*/"
+        f"{path_setup.GENERAL_CMIP6_BASE}/*/"
         f"{ds.institution_id}/{ds.source_id}/*/{ds.variant_label}/*/sos/{ds.grid_label}/*/merged.nc"
     )
     matches = glob.glob(pattern)
@@ -433,8 +431,26 @@ def get_dss_cached(
     return ds2, ds2_pi
 
 
+def shift_to_start(ds, ds_ref, offset=0):
+    if ds is None:
+        return ds
+    t0 = ds_ref["time"].values[0]
+    if isinstance(t0, np.integer):
+        new_time = np.arange(t0 - len(ds["time"]), t0) - offset
+    else:
+        new_time = [
+            oet.analyze.xarray_tools._native_date_fmt(
+                ds_ref["time"].values,
+                (t0.year - offset - dy, 7, 1),
+            )
+            for dy in list(range(len(ds["time"])))[::-1]
+        ]
+    ds = ds.copy()
+    ds["time"] = new_time
+    return ds
+
+
 def plot_rev_simple(ds2, fields=None, **kw):
-    _var = ds2.variable_id
     for _vv in fields:
         _vvrm = _vv + "_run_mean_10"
         lab = kw.pop("label")
@@ -471,19 +487,19 @@ order = [
 
 
 def get_exp(h):
-    return h.split(os.sep)[9]
+    return h.split(os.sep)[path_setup.SCENARIO_INDEX]
 
 
 def get_ver(h):
-    return h.split(os.sep)[-1]
+    return h.split(os.sep)[path_setup.VERSION_INDEX]
 
 
 def get_vari(h):
-    return h.split(os.sep)[10]
+    return h.split(os.sep)[path_setup.VARIANT_LABEL_INDEX]
 
 
 def get_model(h):
-    return h.split(os.sep)[8]
+    return h.split(os.sep)[path_setup.SOURCE_ID_INDEX]
 
 
 def slice_to_string(sl):

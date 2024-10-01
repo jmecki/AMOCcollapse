@@ -3,49 +3,42 @@ notebook:
 
 %run imports.py or %load imports.py
 """
-
-print("Hi there, have a great and productive day :)")
-import optim_esm_tools as oet
-import os
-import xarray as xr
-import numpy as np
-
-import typing as ty
 import collections
-
-import matplotlib.pyplot as plt
-from immutabledict import immutabledict
-import cartopy.crs as ccrs
-from matplotlib.colors import LogNorm
-from matplotlib.gridspec import GridSpec
-
-from tqdm.notebook import tqdm
-
 import datetime
 import glob
-import pandas as pd
-from collections import defaultdict
-from collections import Counter
-import logging
-import time
-import itertools
-import scipy
-import sys
-import numba
 import inspect
-import psutil
-import shutil
+import itertools
+import logging
+import os
 import shlex
+import shutil
 import subprocess
-import matplotlib as mpl
+import sys
+import time
+import typing as ty
+from collections import Counter
+from collections import defaultdict
+from dataclasses import dataclass
+from functools import lru_cache
 from functools import partial
-from matplotlib.colors import LogNorm, Normalize
+
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-from functools import partial, lru_cache
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import numba
+import numpy as np
+import optim_esm_tools as oet
+import pandas as pd
+import psutil
 import regionmask
-from scipy.signal.windows import gaussian
-
 import scipy.ndimage
 import seawater
-from dataclasses import dataclass
+import xarray as xr
+from immutabledict import immutabledict
+from matplotlib.colors import LogNorm
+from matplotlib.colors import Normalize
+from matplotlib.gridspec import GridSpec
+from scipy.signal.windows import gaussian
+from tqdm.notebook import tqdm

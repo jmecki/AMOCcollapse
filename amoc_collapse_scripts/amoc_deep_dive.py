@@ -233,7 +233,9 @@ class NorthAtlanticMaskedProducer(BaseMaskedProducer):
 
     @staticmethod
     def read_water_mask():
-        return helper_scripts.get_water_mask("/data/volume_2/config_utils/is_water.nc")
+        return helper_scripts.get_water_mask(
+            os.path.join(os.path.dirname(__file__), '..', 'data', 'is_water.nc'),
+        )
 
     @staticmethod
     def approximate_atlantic(
