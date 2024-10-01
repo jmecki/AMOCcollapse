@@ -5,7 +5,7 @@ Scripts used for analysis and creating figures for Drijfhout et al. (Atlantic ov
 There are two setups required for producing all the figures. For each of the two setups follows a separate description.
 
 1.  The first setup was used on [`SurfSara`](https://www.surf.nl/en/services/surf-research-cloud). Here we produced the analysis of the raw CMIP6 data (AMOC-strength, mixed-layer depth, temperature etc.).
-2.  The second setup was used on [`Jasmin`](https://jasmin.ac.uk/). This setup provides the methods for analyzing the EN4 data, as well as computing cean heat transport and the AMOC-strength (AMOC only for `CanESM5`).
+2.  The second setup was used on [`Jasmin`](https://jasmin.ac.uk/). This setup provides the methods for analyzing the EN4 data, as well as computing ocean heat transport and the AMOC-strength (AMOC only for `CanESM5`).
 
 ## Data
 
