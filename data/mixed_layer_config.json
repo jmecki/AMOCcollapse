@@ -1,0 +1,57 @@
+{
+  "base": "/data/volume_2/tipping_figures/2024_05_07_amoc/",
+  "figdir": "/data/volume_2/tipping_figures/2024_05_07_amoc/figures_v017",
+  "fig_kw": {
+    "file_types": ["png"],
+    "save_in": "/data/volume_2/tipping_figures/2024_05_07_amoc/figures_v017",
+    "dpi": 300
+  },
+  "cache_in": "/data/volume_2/so_thetao_amoc",
+  "read_from": "/data/volume_2/tipping_figures/2024_05_07_amoc/amoc_sets.json",
+  "config_update": {
+    "analyze": { "regrid_to": "n90" },
+    "versions": { "cmip_handler": "0.8.2_n90" }
+  },
+  "ts_kw": {
+    "ACCESS-CM2 ssp126 r1i1p1f1": { "minus_variables": ["evs", "fsitherm"] },
+    "ACCESS-CM2 ssp585 r1i1p1f1": { "minus_variables": ["evs", "fsitherm"] },
+    "CESM2-WACCM ssp126 r1i1p1f1": {
+      "variables": ["pr", "evs", "(1-siconc)*pr"]
+    },
+    "CESM2-WACCM ssp585 r1i1p1f1": {
+      "variables": ["pr", "evs", "(1-siconc)*pr"]
+    },
+    "CanESM5 ssp126 r1i1p1f1": {
+      "variables": ["wfo", "pr", "evs", "friver", "(1-siconc)*pr"],
+      "minus_variables": [null]
+    },
+    "CanESM5 ssp585 r1i1p1f1": {
+      "variables": ["wfo", "pr", "evs", "friver", "(1-siconc)*pr"],
+      "minus_variables": [null]
+    },
+    "IPSL-CM6A-LR ssp126 r1i1p1f1": {
+      "minus_variables": ["evs", "fsitherm", "wfo"]
+    },
+    "IPSL-CM6A-LR ssp585 r1i1p1f1": {
+      "minus_variables": ["evs", "fsitherm", "wfo"]
+    },
+    "UKESM1-0-LL ssp126 r4i1p1f2": {
+      "variables": ["wfo", "pr", "evs", "friver", "(1-siconc)*pr"]
+    },
+    "UKESM1-0-LL ssp585 r4i1p1f2": {
+      "variables": ["wfo", "pr", "evs", "friver", "(1-siconc)*pr"]
+    },
+    "GISS-E2-1-G ssp245 r1i1p1f2": {
+      "minus_variables": ["evs", "fsitherm", "wfo"]
+    },
+    "GISS-E2-1-G ssp245 r3i1p1f2": {
+      "minus_variables": ["evs", "fsitherm", "wfo"]
+    },
+    "GISS-E2-1-G ssp126 r4i1p1f2": {
+      "minus_variables": ["evs", "fsitherm", "wfo"]
+    },
+    "GISS-E2-1-G ssp585 r4i1p1f2": {
+      "minus_variables": ["evs", "fsitherm", "wfo"]
+    }
+  }
+}
