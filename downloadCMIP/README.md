@@ -1,0 +1,1 @@
+Example script for downloading CMIP6 data from ESGF
