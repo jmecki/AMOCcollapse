@@ -5,11 +5,11 @@ Scripts used for analysis and creating figures for Drijfhout et al. (Atlantic ov
 There are two setups required for producing all the figures. For each of the two setups follows a separate description.
 
 1.  The first setup was used on [`SurfSara`](https://www.surf.nl/en/services/surf-research-cloud). Here we produced the analysis of the raw CMIP6 data (AMOC-strength, mixed-layer depth, temperature etc.).
-2.  The second setup was used on [`Jasmin`](https://jasmin.ac.uk/). This setup provides the methods for analyzing the EN4 data, as well as computing Overturning heat transport and the AMOC-strength (used for `CanESM5`).
+2.  The second setup was used on [`Jasmin`](https://jasmin.ac.uk/). This setup provides the methods for analyzing the EN4 data, as well as computing cean heat transport and the AMOC-strength (AMOC only for `CanESM5`).
 
 ## Data
 
-The main data used in this study can be downloaded from the ESGF data nodes, this can be done through the website (https://aims2.llnl.gov/search/cmip6), the python notebook provided (downloadCMIP/downloadCMIP.ipynb) and by your favorite means. Mesh mask data and basin data are provided as gzipped files in the data directory, they must be unzipped prior to doin computations.
+The main data used in this study can be downloaded from the ESGF data nodes, this can be done through the website (https://aims2.llnl.gov/search/cmip6), the python notebook provided (downloadCMIP/downloadCMIP.ipynb), [`synda`](https://espri-mod.github.io/synda/index.html) or by your favorite means. Mesh mask data and basin data are provided as gzipped files in the data directory, they must be unzipped prior to doing computations using the JASMIN setup.
 
 EN4 data as well as RAPID data used can be downloaded from their websites https://www.metoffice.gov.uk/hadobs/en4/ and https://rapid.ac.uk/, respectively.
 
@@ -46,7 +46,7 @@ This notebook (`notebooks/EN4_figure.ipynb`) only plots the output of the "EN4 m
 
 ## Setup
 
-The analysis was done using python scripts and notebooks. The python environment provided (`environment.yml`) contains the python packages needed and maybe a few extra. Once installed to compute the ocean heat transports (others are also computed at the same time as running the script). In order to make use of these scripts `transportsComp/CMIPinformation.py` needs to have the directories and search scripts altered to match the directory setup you are using. The EN4 scripts and downloadCMIP will also require some edits to match your directory structure.
+The analysis was done using python scripts and notebooks. The python environment provided (`environment.yml`) contains the python packages needed and maybe a few extra. Once installed to compute the ocean heat transports (other transports are also computed at the same time as running the script, but not used in this study). In order to make use of these scripts `transportsComp/CMIPinformation.py` needs to have the directories and search scripts altered to match the directory setup you are using. The EN4 scripts and downloadCMIP will also require some edits to match your directory structure.
 
 ## EN4 mixed layer depth:
 
