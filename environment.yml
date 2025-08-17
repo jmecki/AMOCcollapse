@@ -48,7 +48,7 @@ dependencies:
   - geos
   - shapely
   - pyshp
-  - pyjokes 
+  - pyjokes
   - bodc::coast
   - pip
   - pip:

@@ -23,7 +23,7 @@ AMOC_STRENGTH_WORKING_DIR = '/data/volume_2/tipping_figures/2024_02_27_msft_v12'
 OHT_TRANSPORT_CMIP6 = '/data/volume_2/tipping_figures/2024_05_07_amoc/data/transports_from_jenny/Atlantic_OHT_H_None_26.5N_SybrenPaper.nc'
 
 RAPID_OHT = '/data/volume_2/2024_08_12_rapid_data/mocha_mht_data_ERA5_v2020.nc'
-RAPID_AMOC = '/data/volume_2/2024_08_12_rapid_data/moc_vertical.nc'
+RAPID_AMOC = '/data/volume_2/2024_08_12_rapid_data/moc_vertical_2023.nc'
 
 
 ###
